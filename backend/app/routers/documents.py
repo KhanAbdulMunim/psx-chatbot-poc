@@ -17,7 +17,11 @@ ALLOWED_TYPES = {"pdf", "docx", "txt"}
 def list_documents():
     with get_connection() as conn:
         with conn.cursor() as cur:
-            cur.execute("select * from documents order by created_at desc")
+            cur.execute("""
+       select id::text, filename, file_type, status, error, chunk_count, created_at
+       from documents
+       order by created_at desc
+   """)
             return cur.fetchall()
 
 
@@ -44,7 +48,11 @@ async def upload_document(file: UploadFile, background_tasks: BackgroundTasks):
                 """,
                 (doc_id, file.filename, file_type),
             )
-            cur.execute("select * from documents where id = %s", (doc_id,))
+            cur.execute(
+       "select id::text, filename, file_type, status, error, chunk_count, created_at "
+       "from documents where id = %s",
+       (doc_id,),
+   )
             doc = cur.fetchone()
 
     background_tasks.add_task(_process_document, doc_id, file_type, raw)
